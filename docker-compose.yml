@@ -1,0 +1,120 @@
+services:
+  # PostgreSQL with pgvector extension
+  postgres:
+    image: ankane/pgvector:latest
+    container_name: ka-postgres
+    environment:
+      POSTGRES_DB: knowledge_assistant
+      POSTGRES_USER: ka_user
+      POSTGRES_PASSWORD: ka_password
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ka_user -d knowledge_assistant"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+    networks:
+      - ka-network
+
+  # Ollama service
+  ollama:
+    image: ollama/ollama:latest
+    container_name: ka-ollama
+    ports:
+      - "11434:11434"
+    volumes:
+      - ollama_data:/root/.ollama
+    environment:
+      - OLLAMA_KEEP_ALIVE=24h
+      - OLLAMA_HOST=0.0.0.0:11434
+    restart: unless-stopped
+    networks:
+      - ka-network
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
+    # Comment out the deploy section above if you don't have NVIDIA GPU
+
+  # Knowledge Assistant API Backend
+  ka-backend:
+    build:
+      context: ./Knowledge-Assistant
+      dockerfile: Dockerfile.backend
+    container_name: ka-backend
+    environment:
+      # Database settings
+      DATABASE_URL: postgresql://ka_user:ka_password@postgres:5432/knowledge_assistant
+      # Ollama settings
+      OLLAMA_BASE_URL: http://ollama:11434
+      # Vector database
+      VECTOR_DB_TYPE: pgvector
+      VECTOR_DB_CONNECTION: postgresql://ka_user:ka_password@postgres:5432/knowledge_assistant
+      # Python settings
+      PYTHONUNBUFFERED: 1
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./Knowledge-Assistant:/app
+      - ka_data:/app/data
+    depends_on:
+      postgres:
+        condition: service_healthy
+      ollama:
+        condition: service_started
+    restart: unless-stopped
+    networks:
+      - ka-network
+
+  # Open WebUI Frontend
+  open-webui:
+    image: ghcr.io/open-webui/open-webui:main
+    container_name: ka-open-webui
+    environment:
+      # Ollama API
+      OLLAMA_BASE_URL: http://ollama:11434
+      # OpenAI API compatibility (for Knowledge Assistant backend)
+      OPENAI_API_BASE_URL: http://ka-backend:8000/v1
+      # Database
+      DATABASE_URL: postgresql://ka_user:ka_password@postgres:5432/knowledge_assistant
+      # WebUI settings
+      WEBUI_NAME: Knowledge Assistant
+      WEBUI_URL: http://localhost:3000
+      # Enable features
+      ENABLE_RAG_WEB_SEARCH: true
+      ENABLE_IMAGE_GENERATION: false
+      # Storage
+      DATA_DIR: /app/backend/data
+    ports:
+      - "3000:8080"
+    volumes:
+      - open_webui_data:/app/backend/data
+    depends_on:
+      postgres:
+        condition: service_healthy
+      ollama:
+        condition: service_started
+    restart: unless-stopped
+    networks:
+      - ka-network
+
+volumes:
+  postgres_data:
+    driver: local
+  ollama_data:
+    driver: local
+  ka_data:
+    driver: local
+  open_webui_data:
+    driver: local
+
+networks:
+  ka-network:
+    driver: bridge

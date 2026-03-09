@@ -1,0 +1,46 @@
+FROM python:3.11-slim
+
+WORKDIR /app
+
+# Install system dependencies
+RUN apt-get update && apt-get install -y \
+    build-essential \
+    git \
+    curl \
+    postgresql-client \
+    && rm -rf /var/lib/apt/lists/*
+
+# Copy Knowledge Assistant source
+COPY Knowledge-Assistant/pyproject.toml ./knowledge-assistant/
+COPY Knowledge-Assistant/README.md ./knowledge-assistant/
+COPY Knowledge-Assistant/src ./knowledge-assistant/src/
+
+# Install Knowledge Assistant with Ollama support
+WORKDIR /app/knowledge-assistant
+RUN pip install --no-cache-dir --upgrade pip && \
+    pip install --no-cache-dir -e .[llamaindex,ollama-li]
+
+# Install additional dependencies
+RUN pip install --no-cache-dir \
+    fastapi \
+    uvicorn[standard] \
+    httpx \
+    psycopg2-binary \
+    pgvector
+
+# Copy API server
+WORKDIR /app
+COPY ka_api_server.py ./
+
+# Create data directory
+RUN mkdir -p /app/data
+
+# Expose API port
+EXPOSE 8000
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=10s --start-period=10s --retries=3 \
+    CMD curl -f http://localhost:8000/health || exit 1
+
+# Run the application
+CMD ["python", "ka_api_server.py"]
