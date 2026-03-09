@@ -21,7 +21,7 @@ Complete local RAG (Retrieval-Augmented Generation) stack with Knowledge Assista
 │  │  ┌─────────────────┐       ┌────────────────────┐   │ │
 │  │  │  KA Backend API │◄──────┤  PostgreSQL +      │   │ │
 │  │  │  (Port 8000)    │       │  pgvector          │   │ │
-│  │  │                 │       │  (Port 5432)       │   │ │
+│  │  │                 │       │  (Port 5433→5432)  │   │ │
 │  │  │  - LlamaIndex   │       │                    │   │ │
 │  │  │  - Ollama Prov. │       │  Vector Storage    │   │ │
 │  │  │  - FastAPI      │       │  for RAG           │   │ │
@@ -48,7 +48,7 @@ Complete local RAG (Retrieval-Augmented Generation) stack with Knowledge Assista
 - Vector database for RAG
 - Stores document embeddings
 - Fast similarity search with pgvector extension
-- Port: 5432
+- Port: 5433 (host) → 5432 (container)
 
 ### 4. **Open WebUI** (Docker)
 - Modern, user-friendly chat interface
@@ -189,8 +189,8 @@ docker-compose -f docker-compose.local.yml restart ka-backend
 | Open WebUI | http://localhost:3000 | Main chat interface |
 | KA Backend API | http://localhost:8000 | OpenAI-compatible API |
 | API Documentation | http://localhost:8000/docs | Interactive API docs |
-| PostgreSQL | localhost:5432 | Vector database |
-| Ollama | http://localhost:11434 | LLM inference |
+| PostgreSQL | localhost:5433 | Vector database (port 5433 to avoid conflicts) |
+| Ollama | http://localhost:11434 | LLM inference (runs on host) |
 
 ## Testing the Setup
 
@@ -272,7 +272,7 @@ docker-compose -f docker-compose.local.yml up -d --build --force-recreate ka-bac
 
 ### Port Already in Use
 
-**Problem**: Port 3000, 8000, or 5432 already in use
+**Problem**: Port 3000, 8000, or 5433 already in use
 
 **Solution**:
 ```powershell
@@ -281,6 +281,8 @@ netstat -ano | findstr :3000
 
 # Kill the process or change port in docker-compose.local.yml
 ```
+
+**Note**: PostgreSQL is configured to use port **5433** instead of the default 5432 to avoid conflicts with local PostgreSQL installations. If 5433 is also in use, edit the port mapping in `docker-compose.local.yml`.
 
 ### Database Connection Issues
 
@@ -339,7 +341,7 @@ from pgvector.psycopg2 import register_vector
 # Connect
 conn = psycopg2.connect(
     host="localhost",
-    port=5432,
+    port=5433,  # Note: 5433 on host, 5432 inside container
     database="knowledge_assistant",
     user="ka_user",
     password="ka_password"

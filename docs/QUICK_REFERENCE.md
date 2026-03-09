@@ -31,17 +31,19 @@
 | **Open WebUI** | http://localhost:3000 | Chat interface |
 | **KA API** | http://localhost:8000 | Backend API |
 | **API Docs** | http://localhost:8000/docs | Interactive docs |
-| **PostgreSQL** | localhost:5432 | Vector DB |
-| **Ollama** | http://localhost:11434 | LLM server |
+| **PostgreSQL** | localhost:5433 | Vector DB |
+| **Ollama** | http://localhost:11434 | LLM server (host) |
 
 ## 🔑 Default Credentials
 
 ### PostgreSQL
 - **Host**: localhost
-- **Port**: 5432
+- **Port**: 5433 (host) → 5432 (container)
 - **Database**: knowledge_assistant
 - **User**: ka_user
 - **Password**: ka_password
+
+> **Note**: Port 5433 is used to avoid conflicts with local PostgreSQL installations.
 
 ### First Time Setup
 1. Open http://localhost:3000

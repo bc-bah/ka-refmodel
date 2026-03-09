@@ -51,9 +51,11 @@ This project integrates the **BAH Knowledge Assistant** framework with **Ollama*
 ## 📋 Prerequisites
 
 1. **Docker Desktop** - Installed and running
-2. **Ollama** - Installed with at least one model
+2. **Ollama** - Installed and running locally with at least one model
 3. **Git** - For cloning repositories
 4. **Windows 10/11** with PowerShell
+
+> **Note:** This setup uses your **local Ollama installation** (not containerized) to save storage space and leverage your existing models. The Docker containers connect to Ollama running on your host machine via `host.docker.internal:11434`.
 
 ### Install Ollama Models
 
@@ -103,6 +105,50 @@ Open your browser to: **http://localhost:3000**
 1. Create your admin account (first user is automatically admin)
 2. Start chatting with your local models
 3. Upload documents for RAG-powered Q&A
+
+## ⚙️ Configuration
+
+### Port Configuration
+
+**PostgreSQL Port: 5433** (instead of default 5432)
+
+This setup uses port **5433** for PostgreSQL to avoid conflicts with local PostgreSQL installations that commonly use the default port 5432. This is especially helpful when you're running PostgreSQL on your local machine for other projects.
+
+**To change the PostgreSQL port:**
+
+1. Edit `docker-compose.local.yml` (or `docker-compose.yml`)
+2. Update the ports mapping:
+   ```yaml
+   ports:
+     - "YOUR_PORT:5432"  # Change YOUR_PORT to any available port
+   ```
+3. Restart the stack: `.\utils\stop-stack.ps1` then `.\utils\start-stack.ps1`
+
+**Database connection string:**
+- **From containers:** `postgresql://ka_user:ka_password@postgres:5432/knowledge_assistant`
+- **From host machine:** `postgresql://ka_user:ka_password@localhost:5433/knowledge_assistant`
+
+### Ollama Configuration
+
+This setup uses your **local Ollama installation** rather than running Ollama in a container. This approach:
+
+✅ **Saves storage** - No need to duplicate large model files  
+✅ **Uses existing models** - Leverages models you've already downloaded  
+✅ **Better performance** - Direct access to your GPU without container overhead  
+✅ **Easier management** - Use your familiar `ollama` CLI commands
+
+The Docker containers connect to your host Ollama via `http://host.docker.internal:11434`.
+
+**Verify Ollama is accessible:**
+```powershell
+# Check Ollama is running
+curl http://localhost:11434/api/tags
+
+# List installed models
+ollama list
+```
+
+If you need to use a containerized Ollama instead, see the original `docker-compose.yml` in the git history.
 
 ## 📁 Project Structure
 
@@ -178,8 +224,8 @@ ka-refmodel/
 | **Open WebUI** | http://localhost:3000 | Main chat interface |
 | **API Docs** | http://localhost:8000/docs | Interactive API documentation |
 | **Health Check** | http://localhost:8000/health | Backend health status |
-| **PostgreSQL** | localhost:5432 | Vector database |
-| **Ollama** | http://localhost:11434 | LLM inference server |
+| **PostgreSQL** | localhost:5433 | Vector database (port 5433 to avoid conflicts) |
+| **Ollama** | http://localhost:11434 | LLM inference server (runs on host) |
 
 ## 📚 Documentation
 

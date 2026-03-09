@@ -79,7 +79,7 @@ c:\temp\ka-refmodel\
 **Access:**
 - 🌐 Open WebUI: http://localhost:3000
 - 🔧 API Docs: http://localhost:8000/docs
-- 💾 PostgreSQL: localhost:5432
+- 💾 PostgreSQL: localhost:5433
 
 **Features:**
 - ✨ Modern chat interface (Open WebUI)

@@ -93,8 +93,8 @@ Write-Host "Services:" -ForegroundColor Cyan
 Write-Host "  - Open WebUI:       http://localhost:3000" -ForegroundColor White
 Write-Host "  - KA API:           http://localhost:8000" -ForegroundColor White
 Write-Host "  - KA API Docs:      http://localhost:8000/docs" -ForegroundColor White
-Write-Host "  - PostgreSQL:       localhost:5432" -ForegroundColor White
-Write-Host "  - Ollama:           http://localhost:11434" -ForegroundColor White
+Write-Host "  - PostgreSQL:       localhost:5433" -ForegroundColor White
+Write-Host "  - Ollama (Host):    http://localhost:11434" -ForegroundColor White
 Write-Host ""
 Write-Host "Useful Commands:" -ForegroundColor Cyan
 Write-Host "  - View logs:        docker-compose -f docker-compose.local.yml logs -f" -ForegroundColor Gray
