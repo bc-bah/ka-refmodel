@@ -408,7 +408,12 @@ docker volume ls
 docker system df
 
 # List project-related images
-docker images | findstr -i "ka-\|pgvector\|open-webui"
+docker images --filter "reference=*ka-*"
+docker images --filter "reference=*pgvector*"
+docker images --filter "reference=*open-webui*"
+
+# Or use PowerShell filtering
+docker images | Select-String -Pattern "ka-|pgvector|open-webui"
 ```
 
 **After cleanup, rebuild fresh:**
