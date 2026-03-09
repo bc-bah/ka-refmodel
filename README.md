@@ -372,6 +372,51 @@ docker logs ka-postgres
 docker exec ka-postgres pg_dump -U ka_user knowledge_assistant > backup.sql
 ```
 
+### Clean Up Docker Resources
+
+Remove old container images and free up disk space:
+
+**Recommended Cleanup Workflow:**
+
+```powershell
+# 1. Stop the stack
+.\utils\stop-stack.ps1
+# or
+docker-compose -f docker-compose.local.yml down
+
+# 2. Remove containers and images (keeps volumes/data)
+docker-compose -f docker-compose.local.yml down --rmi all
+
+# 3. Remove dangling images
+docker image prune -f
+
+# 4. (Optional) Remove volumes if you want to start fresh
+docker volume rm ka-refmodel_postgres_data
+docker volume rm ka-refmodel_ka_data
+docker volume rm ka-refmodel_open_webui_data
+
+# 5. Verify cleanup
+docker images
+docker ps -a
+docker volume ls
+```
+
+**Check Disk Usage:**
+
+```powershell
+# See all Docker disk usage
+docker system df
+
+# List project-related images
+docker images | findstr -i "ka-\|pgvector\|open-webui"
+```
+
+**After cleanup, rebuild fresh:**
+
+```powershell
+.\utils\start-stack.ps1
+```
+
 ### Reset Everything
 
 ```powershell
@@ -381,6 +426,8 @@ docker-compose -f docker-compose.local.yml down -v
 # Start fresh
 .\utils\start-stack.ps1
 ```
+
+> **Note**: The cleanup workflow removes images but preserves your data (volumes). "Reset Everything" removes both images and data.
 
 ## 🎯 Key Advantages
 
