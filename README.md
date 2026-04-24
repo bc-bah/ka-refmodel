@@ -184,6 +184,7 @@ curl http://localhost:11434/v1/models
 ```
 ka-refmodel/
 ├── docs/                           # 📚 Documentation
+│   ├── LLAMACPP_SETUP.md          # llama.cpp & Gemma 4 setup guide
 │   ├── DOCKER_SETUP.md            # Complete Docker guide
 │   ├── QUICK_REFERENCE.md         # Command cheat sheet
 │   └── SETUP_COMPLETE.md          # Detailed setup information
@@ -192,21 +193,26 @@ ka-refmodel/
 │   ├── start-stack.ps1            # Start Docker stack
 │   ├── stop-stack.ps1             # Stop Docker stack
 │   ├── view-logs.ps1              # View container logs
-│   └── test-api.ps1               # API health check
+│   ├── test-api.ps1               # API health check
+│   └── download-models.ps1        # Download Gemma 4 models
+│
+├── models/                         # 🤖 GGUF Model Files
+│   ├── gemma-4-26B-A4B-it-Q4_K_M.gguf       # Generative model (15.6 GB)
+│   ├── embeddinggemma-300M-qat-Q4_0.gguf    # Embedding model (260 MB)
+│   └── README.md                            # Model setup instructions
 │
 ├── Knowledge-Assistant/            # 📦 KA Framework (submodule)
 │   ├── src/
 │   │   └── knowledge_assistant/
 │   │       └── llamaindex/
 │   │           └── local/
-│   │               └── models/
-│   │                   └── ollama.py    # ← Ollama integration
+│   │               └── models/      # Model providers
 │   └── pyproject.toml
 │
-├── docker-compose.local.yml        # Docker stack config
+├── docker-compose.local.yml        # Docker stack config (llama.cpp)
 ├── Dockerfile.ka-backend           # KA Backend container
-├── ka_api_server.py                # FastAPI backend server
-├── demo_ollama.py                  # Python integration demo
+├── ka_api_server.py                # FastAPI backend server (OpenAI-compatible)
+├── demo_ollama.py                  # Python integration demo (legacy)
 ├── init-db.sql                     # PostgreSQL setup
 ├── .env.example                    # Environment template
 ├── .gitignore                      # Git ignore rules
@@ -265,7 +271,7 @@ ka-refmodel/
 | **[docs/DOCKER_SETUP.md](docs/DOCKER_SETUP.md)** | Complete Docker setup guide |
 | **[docs/QUICK_REFERENCE.md](docs/QUICK_REFERENCE.md)** | Command reference |
 | **[docs/SETUP_COMPLETE.md](docs/SETUP_COMPLETE.md)** | Detailed setup information |
-| **[demo_ollama.py](demo_ollama.py)** | Python usage examples |
+| **[models/README.md](models/README.md)** | Model download and configuration guide |
 
 ## 🔌 API Integration
 
