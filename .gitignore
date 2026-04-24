@@ -35,6 +35,7 @@ wheels/
 *.egg
 
 # IDE
+.cursor/
 .vscode/
 .idea/
 *.swp
@@ -55,3 +56,11 @@ Thumbs.db
 # Temporary files
 *.tmp
 *.temp
+
+# Models directory - GGUF files are large and shouldn't be in git
+models/*.gguf
+models/*.bin
+
+# Keep the models directory structure
+!models/.gitkeep
+!models/README.md

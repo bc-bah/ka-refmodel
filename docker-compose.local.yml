@@ -1,7 +1,58 @@
-# Simplified setup using your existing local Ollama installation
-# This connects to Ollama running on your host machine
+# Simplified setup using llama.cpp server for LLM inference
+# Replaces Ollama with llama.cpp and Gemma 4
 
 services:
+  # llama.cpp server for LLM inference (generative model)
+  llama-cpp:
+    image: ghcr.io/ggml-org/llama.cpp:server
+    container_name: ka-llamacpp
+    ports:
+      - "11434:8080"
+    volumes:
+      - ./models:/models:ro
+    command: >
+      -m /models/gemma-4-26B-A4B-it-Q4_K_M.gguf
+      --host 0.0.0.0
+      --port 8080
+      -c 8192
+      -ngl 0
+      -t 16
+    restart: unless-stopped
+    networks:
+      - ka-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
+      interval: 60s
+      timeout: 30s
+      retries: 5
+      start_period: 300s
+
+  # llama.cpp server for embeddings
+  llama-cpp-embeddings:
+    image: ghcr.io/ggml-org/llama.cpp:server
+    container_name: ka-llamacpp-embeddings
+    ports:
+      - "11435:8080"
+    volumes:
+      - ./models:/models:ro
+    command: >
+      -m /models/embeddinggemma-300M-qat-Q4_0.gguf
+      --host 0.0.0.0
+      --port 8080
+      -c 2048
+      --embeddings
+      -ngl 0
+      -t 8
+    restart: unless-stopped
+    networks:
+      - ka-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 120s
+
   # PostgreSQL with pgvector extension
   postgres:
     image: ankane/pgvector:latest
@@ -31,11 +82,12 @@ services:
       dockerfile: Dockerfile.ka-backend
     container_name: ka-backend
     environment:
-      # Ollama settings (connects to host Ollama)
-      OLLAMA_BASE_URL: http://host.docker.internal:11434
+      # llama.cpp settings
+      LLAMACPP_BASE_URL: http://llama-cpp:8080
+      LLAMACPP_EMBED_URL: http://llama-cpp-embeddings:8080
       # Default models
-      DEFAULT_MODEL: qwen3:30b
-      DEFAULT_EMBED_MODEL: nomic-embed-text-v2-moe
+      DEFAULT_MODEL: gemma-4-26B-A4B-it-Q4_K_M
+      DEFAULT_EMBED_MODEL: embeddinggemma-300M-qat-Q4_0
       # Database (optional)
       DATABASE_URL: postgresql://ka_user:ka_password@postgres:5432/knowledge_assistant
       # Python settings
@@ -50,19 +102,21 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
+      llama-cpp:
+        condition: service_healthy
+      llama-cpp-embeddings:
+        condition: service_healthy
     restart: unless-stopped
     networks:
       - ka-network
-    extra_hosts:
-      - "host.docker.internal:host-gateway"
 
   # Open WebUI Frontend
   open-webui:
     image: ghcr.io/open-webui/open-webui:main
     container_name: ka-open-webui
     environment:
-      # Ollama API (connects to host Ollama)
-      OLLAMA_BASE_URL: http://host.docker.internal:11434
+      # llama.cpp API
+      OLLAMA_BASE_URL: http://llama-cpp:8080
       # Knowledge Assistant backend as OpenAI-compatible API
       OPENAI_API_BASE_URL: http://ka-backend:8000/v1
       OPENAI_API_KEY: dummy-key-not-required
@@ -86,13 +140,13 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
+      llama-cpp:
+        condition: service_healthy
       ka-backend:
         condition: service_started
     restart: unless-stopped
     networks:
       - ka-network
-    extra_hosts:
-      - "host.docker.internal:host-gateway"
 
 volumes:
   postgres_data:

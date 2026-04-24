@@ -1,7 +1,7 @@
 # Knowledge Assistant Docker Stack Startup Script
 
 Write-Host "========================================" -ForegroundColor Cyan
-Write-Host "Knowledge Assistant + Open WebUI Stack" -ForegroundColor Cyan
+Write-Host "Knowledge Assistant + llama.cpp Stack" -ForegroundColor Cyan
 Write-Host "========================================" -ForegroundColor Cyan
 Write-Host ""
 
@@ -15,27 +15,42 @@ try {
     exit 1
 }
 
-# Check if Ollama is running locally
-Write-Host "[2/5] Checking local Ollama..." -ForegroundColor Yellow
-try {
-    $response = Invoke-WebRequest -Uri "http://localhost:11434/api/tags" -UseBasicParsing -ErrorAction Stop
-    Write-Host "      [OK] Ollama is running" -ForegroundColor Green
-    
-    # Display available models
-    $models = ($response.Content | ConvertFrom-Json).models
-    Write-Host "      Available models:" -ForegroundColor Cyan
-    foreach ($model in $models | Select-Object -First 5) {
-        Write-Host "        - $($model.name)" -ForegroundColor Gray
+# Check if models directory exists and has GGUF files
+Write-Host "[2/5] Checking models directory..." -ForegroundColor Yellow
+$projectRoot = Split-Path -Parent $PSScriptRoot
+$modelsDir = Join-Path $projectRoot "models"
+
+if (!(Test-Path $modelsDir)) {
+    Write-Host "      [WARNING] Models directory not found" -ForegroundColor Yellow
+    Write-Host "      Creating ./models directory..." -ForegroundColor Yellow
+    New-Item -ItemType Directory -Path $modelsDir | Out-Null
+    Write-Host "      [INFO] Please download GGUF models to ./models directory" -ForegroundColor Yellow
+    Write-Host "      See docs/LLAMACPP_SETUP.md for instructions" -ForegroundColor Cyan
+} else {
+    $ggufFiles = Get-ChildItem -Path $modelsDir -Filter "*.gguf" -ErrorAction SilentlyContinue
+    if ($ggufFiles.Count -gt 0) {
+        Write-Host "      [OK] Found $($ggufFiles.Count) GGUF model(s):" -ForegroundColor Green
+        foreach ($file in $ggufFiles | Select-Object -First 3) {
+            $sizeMB = [math]::Round($file.Length / 1MB, 1)
+            Write-Host "        - $($file.Name) ($sizeMB MB)" -ForegroundColor Gray
+        }
+    } else {
+        Write-Host "      [WARNING] No GGUF models found in ./models" -ForegroundColor Yellow
+        Write-Host "      Please download models before starting. See:" -ForegroundColor Yellow
+        Write-Host "      docs/LLAMACPP_SETUP.md for instructions" -ForegroundColor Cyan
+        Write-Host ""
+        Write-Host "      Quick download:" -ForegroundColor Cyan
+        Write-Host "      .\utils\download-models.ps1" -ForegroundColor White
+        Write-Host ""
+        $continue = Read-Host "Continue anyway? (y/N)"
+        if ($continue -ne 'y' -and $continue -ne 'Y') {
+            exit 0
+        }
     }
-} catch {
-    Write-Host "      [WARNING] Ollama is not running at http://localhost:11434" -ForegroundColor Yellow
-    Write-Host "      The stack will still start, but LLM features won't work." -ForegroundColor Yellow
-    Write-Host "      Start Ollama with: ollama serve" -ForegroundColor Yellow
 }
 
 # Check if .env file exists
 Write-Host "[3/5] Checking environment configuration..." -ForegroundColor Yellow
-$projectRoot = Split-Path -Parent $PSScriptRoot
 if (!(Test-Path "$projectRoot\.env")) {
     Write-Host "      [INFO] Creating .env file from .env.example" -ForegroundColor Yellow
     Copy-Item "$projectRoot\.env.example" "$projectRoot\.env"
@@ -94,15 +109,17 @@ Write-Host "  - Open WebUI:       http://localhost:3000" -ForegroundColor White
 Write-Host "  - KA API:           http://localhost:8000" -ForegroundColor White
 Write-Host "  - KA API Docs:      http://localhost:8000/docs" -ForegroundColor White
 Write-Host "  - PostgreSQL:       localhost:5433" -ForegroundColor White
-Write-Host "  - Ollama (Host):    http://localhost:11434" -ForegroundColor White
+Write-Host "  - llama.cpp (Gen):  http://localhost:11434  (Gemma 4 26B)" -ForegroundColor White
+Write-Host "  - llama.cpp (Embed): http://localhost:11435  (EmbeddingGemma 300M)" -ForegroundColor White
 Write-Host ""
 Write-Host "Useful Commands:" -ForegroundColor Cyan
-Write-Host "  - View logs:        docker-compose -f docker-compose.local.yml logs -f" -ForegroundColor Gray
-Write-Host "  - Stop stack:       .\stop-stack.ps1" -ForegroundColor Gray
+Write-Host "  - View logs:        .\utils\view-logs.ps1" -ForegroundColor Gray
+Write-Host "  - Stop stack:       .\utils\stop-stack.ps1" -ForegroundColor Gray
+Write-Host "  - Test API:         .\utils\test-api.ps1" -ForegroundColor Gray
 Write-Host "  - Restart:          docker-compose -f docker-compose.local.yml restart" -ForegroundColor Gray
 Write-Host ""
 Write-Host "First time setup:" -ForegroundColor Cyan
 Write-Host "  1. Open http://localhost:3000" -ForegroundColor White
 Write-Host "  2. Create your admin account" -ForegroundColor White
-Write-Host "  3. Start chatting with your local models!" -ForegroundColor White
+Write-Host "  3. Start chatting with Gemma 4!" -ForegroundColor White
 Write-Host ""

@@ -1,0 +1,3 @@
+# This file keeps the models directory in git
+# GGUF model files should be placed in this directory
+# See docs/LLAMACPP_SETUP.md for download instructions

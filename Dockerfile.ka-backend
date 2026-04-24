@@ -15,10 +15,10 @@ COPY Knowledge-Assistant/pyproject.toml ./knowledge-assistant/
 COPY Knowledge-Assistant/README.md ./knowledge-assistant/
 COPY Knowledge-Assistant/src ./knowledge-assistant/src/
 
-# Install Knowledge Assistant with Ollama support
+# Install Knowledge Assistant
 WORKDIR /app/knowledge-assistant
 RUN pip install --no-cache-dir --upgrade pip && \
-    pip install --no-cache-dir -e .[llamaindex,ollama-li]
+    pip install --no-cache-dir -e .[llamaindex]
 
 # Install additional dependencies
 RUN pip install --no-cache-dir \
