@@ -2,11 +2,13 @@
 
 A complete local RAG (Retrieval-Augmented Generation) stack with Knowledge Assistant, Open WebUI, PostgreSQL pgvector, and llama.cpp with Gemma 4 - no AWS Bedrock required!
 
-<img src="https://img.shields.io/badge/Python-3.11-blue" alt="Python 3.11">
-<img src="https://img.shields.io/badge/Docker-Required-blue" alt="Docker Required">
-<img src="https://img.shields.io/badge/llama.cpp-Latest-green" alt="llama.cpp">
-<img src="https://img.shields.io/badge/Gemma_4-9B-green" alt="Gemma 4">
-<img src="https://img.shields.io/badge/License-MIT-green" alt="License">
+<p align="center">
+  <img src="https://img.shields.io/badge/Python-3.11-blue" alt="Python 3.11">
+  <img src="https://img.shields.io/badge/Docker-Required-blue" alt="Docker Required">
+  <img src="https://img.shields.io/badge/llama.cpp-Latest-green" alt="llama.cpp">
+  <img src="https://img.shields.io/badge/Gemma_4-9B-green" alt="Gemma 4">
+  <img src="https://img.shields.io/badge/License-MIT-green" alt="License">
+</p>
 
 ## 🎯 Overview
 
