@@ -136,7 +136,8 @@ Open your browser to: **http://localhost:3000**
 
 ## ⚙️ Configuration
 
-### Port Configuration
+<details>
+<summary><b>Port Configuration</b> (click to expand)</summary>
 
 **PostgreSQL Port: 5433** (instead of default 5432)
 
@@ -156,7 +157,10 @@ This setup uses port **5433** for PostgreSQL to avoid conflicts with local Postg
 - **From containers:** `postgresql://ka_user:ka_password@postgres:5432/knowledge_assistant`
 - **From host machine:** `postgresql://ka_user:ka_password@localhost:5433/knowledge_assistant`
 
-### llama.cpp Configuration
+</details>
+
+<details>
+<summary><b>llama.cpp Configuration</b> (click to expand)</summary>
 
 This setup runs **llama.cpp in a Docker container** with GGUF models volume-mounted from your host machine. This approach:
 
@@ -179,7 +183,10 @@ curl http://localhost:11434/v1/models
 
 **For detailed configuration options**, see [`docs/LLAMACPP_SETUP.md`](docs/LLAMACPP_SETUP.md)
 
-## 📁 Project Structure
+</details>
+
+<details>
+<summary><b>📁 Project Structure</b> (click to expand)</summary>
 
 ```
 ka-refmodel/
@@ -219,6 +226,8 @@ ka-refmodel/
 └── README.md                       # This file
 
 ```
+
+</details>
 
 ## 🔧 Usage
 
@@ -275,7 +284,8 @@ ka-refmodel/
 
 ## 🔌 API Integration
 
-### Python Example
+<details>
+<summary><b>Python Example</b> (click to expand)</summary>
 
 ```python
 import httpx
@@ -312,7 +322,10 @@ async with httpx.AsyncClient() as client:
     print(f"Embedding dimensions: {len(result['data'][0]['embedding'])}")
 ```
 
-### cURL Example
+</details>
+
+<details>
+<summary><b>cURL Example</b> (click to expand)</summary>
 
 ```bash
 # Health check
@@ -330,6 +343,8 @@ curl -X POST http://localhost:8000/v1/chat/completions \
     "stream": false
   }'
 ```
+
+</details>
 
 ## 🎓 RAG with Open WebUI
 
@@ -380,7 +395,8 @@ ENABLE_IMAGE_GENERATION=false
 
 See [`docs/LLAMACPP_SETUP.md`](docs/LLAMACPP_SETUP.md) for available models and quantization options.
 
-## 🐛 Troubleshooting
+<details>
+<summary><b>🐛 Troubleshooting</b> (click to expand)</summary>
 
 ### Docker Won't Start
 
@@ -436,7 +452,10 @@ docker logs ka-open-webui
 docker logs ka-postgres
 ```
 
-## 🗄️ Data Management
+</details>
+
+<details>
+<summary><b>🗄️ Data Management</b> (click to expand)</summary>
 
 ### Backup Database
 
@@ -506,7 +525,10 @@ docker-compose -f docker-compose.local.yml down -v
 
 > **Note**: The cleanup workflow removes images but preserves your data (volumes). "Reset Everything" removes both images and data.
 
-## 🎯 Key Advantages
+</details>
+
+<details>
+<summary><b>🎯 Key Advantages</b> (click to expand)</summary>
 
 ### vs AWS Bedrock
 - 💰 **$0 cost** - No per-token charges
@@ -526,6 +548,8 @@ docker-compose -f docker-compose.local.yml down -v
 - 🏠 **Self-Hosted** - Complete infrastructure control
 - 📊 **No Tracking** - Zero telemetry or monitoring
 - 🧠 **Gemma 4** - Latest Google open model
+
+</details>
 
 ## 🤝 Contributing
 
