@@ -21,11 +21,11 @@ This project integrates the **BAH Knowledge Assistant** framework with **llama.c
 - ✅ **Full Privacy** - No data sent to external services
 - ✅ **Modern UI** - Beautiful chat interface via Open WebUI
 - ✅ **RAG Ready** - Upload documents and query with AI
-- ✅ **Gemma 4 Powered** - Latest Google Gemma 4 9B model
+- ✅ **Gemma 4 Powered** - Latest Google Gemma 4 26B model
 - ✅ **High Performance** - Optimized llama.cpp inference engine
 - ✅ **Vector Search** - PostgreSQL with pgvector extension
 - ✅ **OpenAI Compatible** - Standard API endpoints
-- ✅ **GPU Accelerated** - Full CUDA/Metal support
+- ✅ **GPU Accelerated** - Full CUDA/Metal support (CPU-optimized config included)
 git st
 ## 🏗️ Architecture
 
@@ -69,8 +69,8 @@ git st
 1. **Docker Desktop** - Installed and running
 2. **Git** - For cloning repositories
 3. **Windows 10/11** with PowerShell
-4. **8GB+ RAM** - For running Gemma 4 9B Q4_K_M model
-5. **10GB+ free disk space** - For model storage
+4. **24GB+ RAM** - For running Gemma 4 26B Q4_K_M model
+5. **20GB+ free disk space** - For model storage
 
 > **Note:** This setup runs **llama.cpp in a Docker container** with GGUF models mounted from your host machine. GPU acceleration is automatically enabled if available (CUDA/Metal).
 
@@ -81,18 +81,21 @@ git st
 mkdir models
 cd models
 
-# Download Gemma 4 9B Instruct (Q4_K_M quantization - recommended)
+# Download Gemma 4 26B Instruct (Q4_K_M quantization - recommended)
 # Option 1: Using Hugging Face CLI (recommended)
 pip install huggingface-hub
-huggingface-cli download ggml-org/gemma-4-9b-it-GGUF gemma-4-9b-it-Q4_K_M.gguf --local-dir . --local-dir-use-symlinks False
+huggingface-cli download ggml-org/gemma-4-26B-A4B-it-GGUF gemma-4-26B-A4B-it-Q4_K_M.gguf --local-dir . --local-dir-use-symlinks False
 
 # Option 2: Manual download from Hugging Face
-# Visit: https://huggingface.co/ggml-org/gemma-4-9b-it-GGUF
-# Download: gemma-4-9b-it-Q4_K_M.gguf (~5.5 GB)
+# Visit: https://huggingface.co/ggml-org/gemma-4-26B-A4B-it-GGUF
+# Download: gemma-4-26B-A4B-it-Q4_K_M.gguf (~15.6 GB)
 # Place in ./models directory
 
-# Verify model file
-ls gemma-4-9b-it-Q4_K_M.gguf
+# Download EmbeddingGemma 300M (for RAG embeddings)
+huggingface-cli download ggml-org/embeddinggemma-300M-qat-GGUF embeddinggemma-300M-qat-Q4_0.gguf --local-dir . --local-dir-use-symlinks False
+
+# Verify model files
+ls *.gguf
 ```
 
 > **For detailed model setup instructions**, see [`docs/LLAMACPP_SETUP.md`](docs/LLAMACPP_SETUP.md)
@@ -271,18 +274,20 @@ ka-refmodel/
 ```python
 import httpx
 
-# llama.cpp base URL
-base_url = "http://localhost:11434"
+# llama.cpp base URLs
+gen_url = "http://localhost:11434"
+embed_url = "http://localhost:11435"
 
 # Chat completion
 async with httpx.AsyncClient() as client:
     response = await client.post(
-        f"{base_url}/v1/chat/completions",
+        f"{gen_url}/v1/chat/completions",
         json={
-            "model": "gemma-4-9b-it-Q4_K_M",
+            "model": "gemma-4-26B-A4B-it-Q4_K_M",
             "messages": [
                 {"role": "user", "content": "Explain RAG in one sentence"}
-            ]
+            ],
+            "stream": False
         }
     )
     result = response.json()
@@ -291,9 +296,9 @@ async with httpx.AsyncClient() as client:
 # Generate embeddings
 async with httpx.AsyncClient() as client:
     response = await client.post(
-        f"{base_url}/v1/embeddings",
+        f"{embed_url}/v1/embeddings",
         json={
-            "model": "nomic-embed-text-v2-moe",
+            "model": "embeddinggemma-300M-qat-Q4_0",
             "input": "Knowledge Assistant"
         }
     )
@@ -314,8 +319,9 @@ curl http://localhost:8000/v1/models
 curl -X POST http://localhost:8000/v1/chat/completions \
   -H "Content-Type: application/json" \
   -d '{
-    "model": "gemma-4-9b-it-Q4_K_M",
-    "messages": [{"role": "user", "content": "Hello!"}]
+    "model": "gemma-4-26B-A4B-it-Q4_K_M",
+    "messages": [{"role": "user", "content": "Hello!"}],
+    "stream": false
   }'
 ```
 
@@ -345,8 +351,9 @@ Edit `.env` file (created from `.env.example`):
 ```env
 # llama.cpp settings
 LLAMACPP_BASE_URL=http://llama-cpp:8080
-DEFAULT_MODEL=gemma-4-9b-it-Q4_K_M
-DEFAULT_EMBED_MODEL=nomic-embed-text-v2-moe
+LLAMACPP_EMBED_URL=http://llama-cpp-embeddings:8080
+DEFAULT_MODEL=gemma-4-26B-A4B-it-Q4_K_M
+DEFAULT_EMBED_MODEL=embeddinggemma-300M-qat-Q4_0
 MODELS_PATH=./models
 
 # Database
@@ -394,11 +401,12 @@ curl http://localhost:11434/v1/models
 ### Model Not Found
 
 ```powershell
-# Verify model file exists
-ls ./models/gemma-4-9b-it-Q4_K_M.gguf
+# Verify model files exist
+ls ./models/*.gguf
 
-# Check container can see the model
+# Check containers can see the models
 docker exec ka-llamacpp ls /models
+docker exec ka-llamacpp-embeddings ls /models
 ```
 
 ### Port Already in Use

@@ -21,33 +21,36 @@ You'll need to download GGUF model files from Hugging Face. The recommended mode
 
 #### Generative Model (Required)
 
-Download Gemma 4 9B Instruct from Hugging Face:
+Download Gemma 4 26B Instruct from Hugging Face:
 
 ```powershell
 # Navigate to models directory
 cd models
 
 # Download using Hugging Face CLI (recommended)
-huggingface-cli download ggml-org/gemma-4-9b-it-GGUF gemma-4-9b-it-Q4_K_M.gguf --local-dir . --local-dir-use-symlinks False
+huggingface-cli download ggml-org/gemma-4-26B-A4B-it-GGUF gemma-4-26B-A4B-it-Q4_K_M.gguf --local-dir . --local-dir-use-symlinks False
 ```
 
 **Alternative: Manual Download**
 
-1. Visit [ggml-org/gemma-4-9b-it-GGUF](https://huggingface.co/ggml-org/gemma-4-9b-it-GGUF)
-2. Download `gemma-4-9b-it-Q4_K_M.gguf` (recommended quantization)
+1. Visit [ggml-org/gemma-4-26B-A4B-it-GGUF](https://huggingface.co/ggml-org/gemma-4-26B-A4B-it-GGUF)
+2. Download `gemma-4-26B-A4B-it-Q4_K_M.gguf` (recommended quantization)
 3. Place it in the `./models` directory
 
-#### Embedding Model (Optional)
+#### Embedding Model (Required)
 
-For embedding generation, you can either:
+Download EmbeddingGemma 300M for RAG embeddings:
 
-**Option A:** Use nomic-embed-text (via Ollama or separate service)
-- The current setup uses `nomic-embed-text-v2-moe` for embeddings
-- You can keep using this via a separate Ollama installation or another embedding service
+```powershell
+# Download using Hugging Face CLI (recommended)
+huggingface-cli download ggml-org/embeddinggemma-300M-qat-GGUF embeddinggemma-300M-qat-Q4_0.gguf --local-dir . --local-dir-use-symlinks False
+```
 
-**Option B:** Use a Gemma-based embedding model
-- Search Hugging Face for Gemma embedding models in GGUF format
-- Download and configure similarly to the generative model
+**Alternative: Manual Download**
+
+1. Visit [ggml-org/embeddinggemma-300M-qat-GGUF](https://huggingface.co/ggml-org/embeddinggemma-300M-qat-GGUF)
+2. Download `embeddinggemma-300M-qat-Q4_0.gguf`
+3. Place it in the `./models` directory
 
 ### 3. Verify File Structure
 
@@ -56,8 +59,8 @@ Your directory should look like this:
 ```
 ka-refmodel/
 ├── models/
-│   ├── gemma-4-9b-it-Q4_K_M.gguf    # ~5.5 GB
-│   └── (optional embedding model.gguf)
+│   ├── gemma-4-26B-A4B-it-Q4_K_M.gguf      # ~15.6 GB (Generative)
+│   └── embeddinggemma-300M-qat-Q4_0.gguf   # ~260 MB (Embeddings)
 ├── docker-compose.local.yml
 ├── .env
 └── ...
@@ -69,8 +72,9 @@ Edit `.env` file to match your model files:
 
 ```env
 LLAMACPP_BASE_URL=http://llama-cpp:8080
-DEFAULT_MODEL=gemma-4-9b-it-Q4_K_M
-DEFAULT_EMBED_MODEL=nomic-embed-text-v2-moe
+LLAMACPP_EMBED_URL=http://llama-cpp-embeddings:8080
+DEFAULT_MODEL=gemma-4-26B-A4B-it-Q4_K_M
+DEFAULT_EMBED_MODEL=embeddinggemma-300M-qat-Q4_0
 MODELS_PATH=./models
 ```
 
@@ -102,37 +106,43 @@ The Docker Compose configuration includes GPU settings:
 
 ```yaml
 command: >
-  --server
+  -m /models/gemma-4-26B-A4B-it-Q4_K_M.gguf
   --host 0.0.0.0
   --port 8080
-  --model /models/gemma-4-9b-it-Q4_K_M.gguf
-  --ctx-size 8192
-  --n-gpu-layers 35      # Adjust based on your GPU VRAM
-  --threads 8            # Adjust based on your CPU cores
+  -c 8192
+  -ngl 0           # CPU-only (change for GPU: 45 for ~24GB VRAM)
+  -t 16            # CPU threads (adjust based on your CPU cores)
 ```
 
 **Adjust GPU layers:**
-- `--n-gpu-layers 35`: Full offload for ~8GB VRAM
-- `--n-gpu-layers 20`: Partial offload for ~4GB VRAM
-- `--n-gpu-layers 0`: CPU-only inference
+- `-ngl 0`: CPU-only inference (current default)
+- `-ngl 45`: Full GPU offload for ~24GB VRAM (26B model)
+- `-ngl 25`: Partial offload for ~12GB VRAM
+- Note: Docker GPU support requires CUDA-enabled llama.cpp image
 
 ### Context Size
 
 Adjust context window size based on your needs:
 
 ```yaml
---ctx-size 8192    # Default: 8K tokens
---ctx-size 16384   # Extended: 16K tokens
---ctx-size 32768   # Large: 32K tokens (requires more RAM)
+-c 8192    # Default: 8K tokens
+-c 16384   # Extended: 16K tokens
+-c 32768   # Large: 32K tokens (requires more RAM)
 ```
+
+Note: Gemma 4 supports up to 262K context, but larger contexts require significantly more RAM.
 
 ### Multiple Models
 
 To use multiple models, download them to the `./models` directory and switch by:
 
 1. Stopping the stack: `.\utils\stop-stack.ps1`
-2. Editing `docker-compose.local.yml` to change the `--model` path
+2. Editing `docker-compose.local.yml` to change the `-m` model path
 3. Restarting: `.\utils\start-stack.ps1`
+
+**Current Setup:** Dual llama.cpp servers
+- Port 11434: Generative model (gemma-4-26B-A4B-it)
+- Port 11435: Embedding model (embeddinggemma-300M)
 
 ## Troubleshooting
 
@@ -181,8 +191,8 @@ pip install huggingface-hub
 # Login (optional, for gated models)
 huggingface-cli login
 
-# Download a model
-huggingface-cli download ggml-org/gemma-4-9b-it-GGUF gemma-4-9b-it-Q4_K_M.gguf --local-dir ./models --local-dir-use-symlinks False
+# Download the 26B model
+huggingface-cli download ggml-org/gemma-4-26B-A4B-it-GGUF gemma-4-26B-A4B-it-Q4_K_M.gguf --local-dir ./models --local-dir-use-symlinks False
 ```
 
 ## Alternative Model Sources
@@ -192,26 +202,30 @@ huggingface-cli download ggml-org/gemma-4-9b-it-GGUF gemma-4-9b-it-Q4_K_M.gguf -
 Use llama.cpp's `-hf` flag to download directly:
 
 ```bash
-llama-cli -hf ggml-org/gemma-4-9b-it-GGUF --prompt "Hello!"
+llama-cli -hf ggml-org/gemma-4-26B-A4B-it-GGUF --prompt "Hello!"
 ```
 
 ### 2. Other Gemma 4 Models
 
 Explore available models:
-- [ggml-org/gemma-4-9b-it-GGUF](https://huggingface.co/ggml-org/gemma-4-9b-it-GGUF) - 9B Instruct
-- [ggml-org/gemma-4-2b-it-GGUF](https://huggingface.co/ggml-org/gemma-4-2b-it-GGUF) - 2B Instruct (smaller)
+- [ggml-org/gemma-4-26B-A4B-it-GGUF](https://huggingface.co/ggml-org/gemma-4-26B-A4B-it-GGUF) - 26B Instruct (current)
+- [ggml-org/gemma-4-9b-it-GGUF](https://huggingface.co/ggml-org/gemma-4-9b-it-GGUF) - 9B Instruct (smaller, faster)
+- [ggml-org/gemma-4-2b-it-GGUF](https://huggingface.co/ggml-org/gemma-4-2b-it-GGUF) - 2B Instruct (fastest)
+- [ggml-org/embeddinggemma-300M-qat-GGUF](https://huggingface.co/ggml-org/embeddinggemma-300M-qat-GGUF) - Embeddings
 - Search Hugging Face for more: [gemma-4 GGUF models](https://huggingface.co/models?search=gemma-4%20gguf)
 
 ## Performance Benchmarks
 
-Expected performance with Gemma 4 9B Q4_K_M:
+Expected performance with Gemma 4 26B Q4_K_M:
 
-| Hardware | Tokens/sec | Configuration |
-|----------|------------|---------------|
-| RTX 3060 12GB | 40-50 | GPU layers: 35 |
-| RTX 4070 12GB | 60-80 | GPU layers: 35 |
-| RTX 4090 24GB | 100-120 | GPU layers: 35 |
-| CPU (16 cores) | 10-15 | CPU only |
+| Hardware | Tokens/sec | Configuration | Notes |
+|----------|------------|---------------|-------|
+| RTX 4090 24GB | 40-60 | GPU layers: 45 | Full model on GPU |
+| RTX 4080 16GB | 20-30 | GPU layers: 25 | Partial offload |
+| CPU (16+ cores) | 5-10 | CPU only | Current setup |
+| CPU (32+ cores) | 10-15 | CPU only | High-end CPU |
+
+**Note:** Current configuration is optimized for CPU-only inference. GPU support requires additional setup.
 
 ## Additional Resources
 
